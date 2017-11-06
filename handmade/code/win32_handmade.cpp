@@ -381,7 +381,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
 
     else
     {
-        //Add logging
+    
     }
 
     return 0;
