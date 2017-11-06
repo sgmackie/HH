@@ -55,6 +55,8 @@ X_INPUT_SET_STATE(XInputSetStateStub)
 
 global win32_xinput_GetState *XInputGetState_ = XInputGetStateStub;
 global win32_xinput_SetState *XInputSetState_ = XInputSetStateStub;
+
+//Rename to prevent conflicts with XInput header
 #define XInputGetState XInputGetState_
 #define XInputSetState XInputSetState_
 
