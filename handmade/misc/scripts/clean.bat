@@ -3,6 +3,7 @@
 :: Set directories to read into
 set BuildDir=..\..\..\build
 set ObjDir=.\obj\
+set Debug=.\Debug\
 
 :: Delete files if build directory exists
 if exist %BuildDir% (  
@@ -14,6 +15,7 @@ if exist %BuildDir% (
   
   :: Remove directory and sub-folders without printing output to the terminal
   rd /q /s %ObjDir%
+  rd /q /s %Debug%
   
   :: Jump out of build directory
   popd
