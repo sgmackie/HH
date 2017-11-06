@@ -358,12 +358,6 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
                     }
                 }
 
-                //Vibration check
-                XINPUT_VIBRATION Vibration;
-                Vibration.wLeftMotorSpeed = 40000;
-                Vibration.wRightMotorSpeed = 40000;
-                XInputSetState(0, &Vibration);
-
                 render_Gradient(&GlobalBackBuffer, XOffset, YOffset);
 
                 //CHECK WHERE TO PUT THIS 
