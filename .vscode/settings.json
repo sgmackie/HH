@@ -1,0 +1,9 @@
+{
+    "terminal.integrated.shell.windows": "C:\\WINDOWS\\System32\\cmd.exe",
+    "terminal.integrated.shellArgs.windows": ["/k", "K:\\Audio\\Editing\\Current\\Programming\\HandmadeHero\\handmade\\misc\\shell.bat"],
+    "terminal.integrated.fontSize": 16,
+    "terminal.integrated.lineHeight": 1,
+    "files.associations": {
+        "*.rh": "cpp"
+    }
+}
