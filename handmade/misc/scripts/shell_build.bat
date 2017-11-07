@@ -1,9 +1,11 @@
 @echo off
 
-pushd ..\HandmadeHero\handmade\misc
+pushd handmade\misc
 call shell.bat
 popd
 
-cd ..\HandmadeHero\build
-build
+pushd handmade\code
+call build
+popd
 
+cd build
