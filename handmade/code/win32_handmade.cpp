@@ -17,6 +17,8 @@ typedef int16_t int16;
 typedef int32_t int32;
 typedef int64_t int64;
 
+typedef int32 bool32;
+
 //Create struct instead of global varibles, means multiple buffers can be made
 struct WIN32_OFFSCREEN_BUFFER
 {
@@ -43,14 +45,15 @@ struct WIN32_WINDOW_DIMENSIONS
 typedef X_INPUT_GET_STATE(win32_xinput_GetState);
 typedef X_INPUT_SET_STATE(win32_xinput_SetState);
 
+//When XInput.dll isn't found on machine, call fake functions so game doesn't crash
 X_INPUT_GET_STATE(XInputGetStateStub)
 {
-    return 0;
+    return ERROR_DEVICE_NOT_CONNECTED;
 }
 
 X_INPUT_SET_STATE(XInputSetStateStub)
 {
-    return 0;
+    return ERROR_DEVICE_NOT_CONNECTED;
 }
 
 global win32_xinput_GetState *XInputGetState_ = XInputGetStateStub;
@@ -63,7 +66,12 @@ global win32_xinput_SetState *XInputSetState_ = XInputSetStateStub;
 //Load XInput in the same fashion Windows would
 internal void win32_LoadXInput(void)
 {
-    HMODULE XInputLibrary = LoadLibrary("xinput1_3.dll");
+    HMODULE XInputLibrary = LoadLibrary("xinput1_4.dll");
+
+    if(!XInputLibrary)
+    {
+        HMODULE XInputLibrary = LoadLibrary("xinput1_3.dll");
+    }
 
     if(XInputLibrary)
     {
@@ -248,6 +256,14 @@ LRESULT CALLBACK win32_MainWindow_Callback(HWND Window, UINT UserMessage, WPARAM
                     OutputDebugStringA("Escape\n");
                 }
             }
+
+            bool32 AltKeyWasDown = ((LParam & (1 << 29)) != 0);
+
+            if((VKCode == VK_F4) && AltKeyWasDown)
+            {
+                GlobalRunning = false;
+            }
+            
             break;
         }
 
