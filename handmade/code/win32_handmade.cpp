@@ -1,6 +1,7 @@
 #include <windows.h>
 #include <stdint.h>
 #include <xinput.h>
+#include <dsound.h>
 
 //Static can have three different meanings:
 #define global static //Global access to variable
@@ -36,22 +37,24 @@ struct WIN32_WINDOW_DIMENSIONS
     int Height;
 };
 
-//Create own version of XInput functions so don't have to call xinput.lib
+//Create own version of XInput/DirectSound functions to avoid calling libraries
 //Create macros of function prototypes
-#define X_INPUT_GET_STATE(name) DWORD WINAPI name(DWORD dwUserIndex, XINPUT_STATE* pState)
-#define X_INPUT_SET_STATE(name) DWORD WINAPI name(DWORD dwUserIndex, XINPUT_VIBRATION* pVibration)
+#define XINPUT_GET_STATE(name) DWORD WINAPI name(DWORD dwUserIndex, XINPUT_STATE* pState)
+#define XINPUT_SET_STATE(name) DWORD WINAPI name(DWORD dwUserIndex, XINPUT_VIBRATION* pVibration)
+#define DIRECTSOUND_CREATE(name) DWORD WINAPI name(LPCGUID pcGuidDevice, LPDIRECTSOUND *ppDS, LPUNKNOWN pUnkOuter)
 
 //Define type of functions so they can be used as pointers
-typedef X_INPUT_GET_STATE(win32_xinput_GetState);
-typedef X_INPUT_SET_STATE(win32_xinput_SetState);
+typedef XINPUT_GET_STATE(win32_xinput_GetState);
+typedef XINPUT_SET_STATE(win32_xinput_SetState);
+typedef DIRECTSOUND_CREATE(directsound_create);
 
-//When XInput.dll isn't found on machine, call fake functions so game doesn't crash
-X_INPUT_GET_STATE(XInputGetStateStub)
+//When .dlls aren't found on machine, call fake functions so game doesn't crash
+XINPUT_GET_STATE(XInputGetStateStub)
 {
     return ERROR_DEVICE_NOT_CONNECTED;
 }
 
-X_INPUT_SET_STATE(XInputSetStateStub)
+XINPUT_SET_STATE(XInputSetStateStub)
 {
     return ERROR_DEVICE_NOT_CONNECTED;
 }
@@ -59,7 +62,7 @@ X_INPUT_SET_STATE(XInputSetStateStub)
 global win32_xinput_GetState *XInputGetState_ = XInputGetStateStub;
 global win32_xinput_SetState *XInputSetState_ = XInputSetStateStub;
 
-//Rename to prevent conflicts with XInput header
+//Rename to prevent conflicts with headers
 #define XInputGetState XInputGetState_
 #define XInputSetState XInputSetState_
 
@@ -77,6 +80,23 @@ internal void win32_LoadXInput(void)
     {
         XInputGetState = (win32_xinput_GetState *) GetProcAddress(XInputLibrary, "XInputGetState");
         XInputSetState = (win32_xinput_SetState *) GetProcAddress(XInputLibrary, "XInputSetState");
+    }
+}
+
+//Load and initialise DirectSound (OOP API)
+internal void Win32InitDSound(HWND Window)
+{
+    HMODULE DSoundLibrary = LoadLibrary("dsound.dll");
+
+    if(DSoundLibrary)
+    {
+        directsound_create *DirectSoundCreate = (directsound_create *) GetProcAddress(DSoundLibrary, "DirectSoundCreate");
+
+        LPDIRECTSOUND DirectSound;
+        if(DirectSoundCreate && SUCCEEDED(DirectSoundCreate(0, &DirectSound, 0)))
+        {
+            if(SUCCEEDED(DirectSound->SetCooperativeLevel(Window, DSSCL_PRIORITY)));
+        }
     }
 }
 
@@ -321,6 +341,8 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
             int XOffset = 0;
             int YOffset = 0;
             
+            Win32InitDSound(Window);
+
             GlobalRunning = true;
 
             while(GlobalRunning) //Loop while program is running / until negative result from GetMessage
