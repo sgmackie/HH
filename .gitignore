@@ -1,2 +1,4 @@
 .vscode/
 Command Prompt.lnk
+*.ilk
+*.pdb
