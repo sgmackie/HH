@@ -70,7 +70,7 @@ global win32_xinput_SetState *XInputSetState_ = XInputSetStateStub;
 
 
 global LPDIRECTSOUNDBUFFER GlobalSecondaryBuffer;
-global bool GlobalRunning; 
+global bool32 GlobalRunning; 
 global WIN32_OFFSCREEN_BUFFER GlobalBackBuffer;
 
 //Rename to prevent conflicts with headers
@@ -85,6 +85,11 @@ internal void win32_LoadXInput(void)
     if(!XInputLibrary)
     {
         HMODULE XInputLibrary = LoadLibrary("xinput1_3.dll");
+    }
+
+    if(!XInputLibrary)
+    {
+        HMODULE XInputLibrary = LoadLibrary("xinput9_1_0.dll");
     }
 
     if(XInputLibrary)
@@ -164,6 +169,7 @@ struct WIN32_SOUND_OUTPUT
     int SquareWave_Period;
     int BytesPerSample;
     int SecondaryBufferSize;
+    real32 tSine;
 };
 
 internal void win32_FillSoundBuffer(WIN32_SOUND_OUTPUT *SoundOutput, DWORD ByteToLock, DWORD BytesToWrite)
@@ -179,11 +185,13 @@ internal void win32_FillSoundBuffer(WIN32_SOUND_OUTPUT *SoundOutput, DWORD ByteT
 
         for(DWORD SampleIndex = 0; SampleIndex < Region1SampleCount; ++SampleIndex)
         {
-            real32 SinePosition = 2.0f * Pi32 * (real32) SoundOutput->RunningSampleIndex /SoundOutput->SquareWave_Period;
-            real32 SineValue = sinf(SinePosition);
+            real32 SineValue = sinf(SoundOutput->tSine);
             int16 SampleValue = (int16) (SineValue * SoundOutput->Amplitude);
+            
             *SampleOut++ = SampleValue;
             *SampleOut++ = SampleValue;
+
+            SoundOutput->tSine += 2.0f * Pi32 * 1.0 / (real32) SoundOutput->SquareWave_Period;
             ++SoundOutput->RunningSampleIndex;
         }
     
@@ -192,12 +200,13 @@ internal void win32_FillSoundBuffer(WIN32_SOUND_OUTPUT *SoundOutput, DWORD ByteT
        
         for(DWORD SampleIndex = 0; SampleIndex < Region2SampleCount; ++SampleIndex)
         {
-            real32 SinePosition = 2.0f * Pi32 * (real32) SoundOutput->RunningSampleIndex /SoundOutput->SquareWave_Period;
-            real32 SineValue = sinf(SinePosition);
+            real32 SineValue = sinf(SoundOutput->tSine);
             int16 SampleValue = (int16) (SineValue * SoundOutput->Amplitude);
             
             *SampleOut++ = SampleValue;
             *SampleOut++ = SampleValue;
+
+            SoundOutput->tSine += 2.0f * Pi32 * 1.0 / (real32) SoundOutput->SquareWave_Period;
             ++SoundOutput->RunningSampleIndex;
         }
     
@@ -323,9 +332,9 @@ LRESULT CALLBACK win32_MainWindow_Callback(HWND Window, UINT UserMessage, WPARAM
             uint32 VKCode = WParam;
 
             //Check if key was down, if bit == 30 then it's true, otherwise false
-            bool WasDown = ((LParam & (1 << 30)) != 0);
+            bool32 WasDown = ((LParam & (1 << 30)) != 0);
             //Check if being held down
-            bool IsDown = ((LParam & (1 << 31)) == 0);
+            bool32 IsDown = ((LParam & (1 << 31)) == 0);
 
             if(WasDown != IsDown)
             {
@@ -492,18 +501,18 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
                         //Button layouts
                         XINPUT_GAMEPAD *Pad = &ControllerState.Gamepad;
 
-                        bool PadUp = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_UP);
-                        bool PadDown = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_DOWN);
-                        bool PadLeft = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_LEFT);
-                        bool PadRight = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_RIGHT);
-                        bool PadStart = (Pad->wButtons & XINPUT_GAMEPAD_START);
-                        bool PadBack = (Pad->wButtons & XINPUT_GAMEPAD_BACK);
-                        bool PadLeftShoulder = (Pad->wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER);
-                        bool PadRightShoulder = (Pad->wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER);
-                        bool PadButtonA = (Pad->wButtons & XINPUT_GAMEPAD_A);
-                        bool PadButtonB = (Pad->wButtons & XINPUT_GAMEPAD_B);
-                        bool PadButtonX = (Pad->wButtons & XINPUT_GAMEPAD_X);
-                        bool PadButtonY = (Pad->wButtons & XINPUT_GAMEPAD_Y);
+                        bool32 PadUp = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_UP);
+                        bool32 PadDown = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_DOWN);
+                        bool32 PadLeft = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_LEFT);
+                        bool32 PadRight = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_RIGHT);
+                        bool32 PadStart = (Pad->wButtons & XINPUT_GAMEPAD_START);
+                        bool32 PadBack = (Pad->wButtons & XINPUT_GAMEPAD_BACK);
+                        bool32 PadLeftShoulder = (Pad->wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER);
+                        bool32 PadRightShoulder = (Pad->wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER);
+                        bool32 PadButtonA = (Pad->wButtons & XINPUT_GAMEPAD_A);
+                        bool32 PadButtonB = (Pad->wButtons & XINPUT_GAMEPAD_B);
+                        bool32 PadButtonX = (Pad->wButtons & XINPUT_GAMEPAD_X);
+                        bool32 PadButtonY = (Pad->wButtons & XINPUT_GAMEPAD_Y);
 
                         int16 PadStickX = Pad->sThumbLX;
                         int16 PadStickY = Pad->sThumbLY;
