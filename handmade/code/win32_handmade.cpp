@@ -3,6 +3,7 @@
 #include <xinput.h>
 #include <dsound.h>
 #include <math.h>
+#include <stdio.h>
 
 //Static can have three different meanings:
 #define global static //Global access to variable
@@ -22,8 +23,8 @@ typedef int32_t int32;
 typedef int64_t int64;
 
 typedef int32 bool32;
-typedef float real32;
-typedef double real64;
+typedef float float32;
+typedef double float64;
 
 //Create struct instead of global variables, means multiple buffers can be made
 struct WIN32_OFFSCREEN_BUFFER
@@ -169,7 +170,7 @@ struct WIN32_SOUND_OUTPUT
     int SquareWave_Period;
     int BytesPerSample;
     int SecondaryBufferSize;
-    real32 tSine;
+    float32 tSine;
 };
 
 internal void win32_FillSoundBuffer(WIN32_SOUND_OUTPUT *SoundOutput, DWORD ByteToLock, DWORD BytesToWrite)
@@ -185,13 +186,13 @@ internal void win32_FillSoundBuffer(WIN32_SOUND_OUTPUT *SoundOutput, DWORD ByteT
 
         for(DWORD SampleIndex = 0; SampleIndex < Region1SampleCount; ++SampleIndex)
         {
-            real32 SineValue = sinf(SoundOutput->tSine);
+            float32 SineValue = sinf(SoundOutput->tSine);
             int16 SampleValue = (int16) (SineValue * SoundOutput->Amplitude);
             
             *SampleOut++ = SampleValue;
             *SampleOut++ = SampleValue;
 
-            SoundOutput->tSine += 2.0f * Pi32 * 1.0 / (real32) SoundOutput->SquareWave_Period;
+            SoundOutput->tSine += 2.0f * Pi32 * 1.0 / (float32) SoundOutput->SquareWave_Period;
             ++SoundOutput->RunningSampleIndex;
         }
     
@@ -200,13 +201,13 @@ internal void win32_FillSoundBuffer(WIN32_SOUND_OUTPUT *SoundOutput, DWORD ByteT
        
         for(DWORD SampleIndex = 0; SampleIndex < Region2SampleCount; ++SampleIndex)
         {
-            real32 SineValue = sinf(SoundOutput->tSine);
+            float32 SineValue = sinf(SoundOutput->tSine);
             int16 SampleValue = (int16) (SineValue * SoundOutput->Amplitude);
             
             *SampleOut++ = SampleValue;
             *SampleOut++ = SampleValue;
 
-            SoundOutput->tSine += 2.0f * Pi32 * 1.0 / (real32) SoundOutput->SquareWave_Period;
+            SoundOutput->tSine += 2.0f * Pi32 * 1.0 / (float32) SoundOutput->SquareWave_Period;
             ++SoundOutput->RunningSampleIndex;
         }
     
@@ -432,6 +433,10 @@ LRESULT CALLBACK win32_MainWindow_Callback(HWND Window, UINT UserMessage, WPARAM
 //Entry point for any Windows application
 int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLine, int CommandShow)
 {
+    LARGE_INTEGER PerfomanceCounterFrequency_Result;
+    QueryPerformanceFrequency(&PerfomanceCounterFrequency_Result);
+    int64 PerfomanceCounterFrequency = PerfomanceCounterFrequency_Result.QuadPart;
+
     win32_LoadXInput(); //Load XInput dll
     WNDCLASS WindowClass = {}; //Initialise everything in struct to 0
 
@@ -471,6 +476,11 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
             
             bool32 SoundIsPlaying = false;
             GlobalRunning = true;
+
+            LARGE_INTEGER LastCounter;
+            QueryPerformanceCounter(&LastCounter);
+
+            int64 LastCycleCount = __rdtsc();
 
             //Loop while program is running / until negative result from GetMessage
             while(GlobalRunning)
@@ -558,6 +568,24 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
                 win32_DisplayBuffer_Window(&GlobalBackBuffer, DeviceContext, WindowDimensions.Width, WindowDimensions.Height);
                 
                 ReleaseDC(Window, DeviceContext);
+
+                LARGE_INTEGER EndCounter;
+                QueryPerformanceCounter(&EndCounter);
+
+                int64 EndCycleCount = __rdtsc();
+
+                int64 CounterElapsed = EndCounter.QuadPart - LastCounter.QuadPart;
+                int64 CyclesElapsed = EndCycleCount - LastCycleCount;
+                float32 MSPerFrame = (float32) (((1000.0f * (float32) CounterElapsed) / (float32) PerfomanceCounterFrequency));
+                float32 FramesPerSecond = (float32) PerfomanceCounterFrequency / (float32) CounterElapsed;
+                float32 MegaHzCyclesPerFrame = (float32) (CyclesElapsed / (1000.0f * 1000.0f));
+
+                char MSPerFrame_Buffer[256];
+                sprintf(MSPerFrame_Buffer, "%0.2f ms/frame\t %0.2f FPS\t %0.2f cycles(MHz)/frame\n", MSPerFrame, FramesPerSecond, MegaHzCyclesPerFrame);
+                OutputDebugString(MSPerFrame_Buffer);
+
+                LastCounter = EndCounter;
+                LastCycleCount = EndCycleCount;
             }
         }
 

@@ -1,7 +1,7 @@
 @echo off
 
 :: Set directories to read into
-set BuildDir=..\..\..\build
+set BuildDir=..\build
 set ObjDir=.\obj\
 set Debug=.\Debug\
 
@@ -14,8 +14,13 @@ if exist %BuildDir% (
   del /q /f *.exe *.pdb *.ilk *.dll
   
   :: Remove directory and sub-folders without printing output to the terminal
-  rd /q /s %ObjDir%
-  rd /q /s %Debug%
+  if exist %ObjDir% (
+    rd /q /s %ObjDir%
+  )
+
+  if exist %Debug% (
+    rd /q /s %Debug%
+  )
   
   :: Jump out of build directory
   popd
