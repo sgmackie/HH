@@ -18,7 +18,7 @@ set ObjDir=.\obj\
 :: -Zi enable debugging info
 :: -FC use full path in diagnostics
 :: -Fo path to store Object files
-set CompilerFlags=-Zi -FC -Fo%ObjDir%
+set CompilerFlags=-DHANDMADE_WIN32=1 -Zi -FC -Fo%ObjDir%
 
 :: Create Object directory if it doesn't exist
 if not exist %ObjDir% mkdir %ObjDir%

@@ -1,9 +1,4 @@
-#include <windows.h>
 #include <stdint.h>
-#include <xinput.h>
-#include <dsound.h>
-#include <math.h>
-#include <stdio.h>
 
 //Static can have three different meanings:
 #define global static //Global access to variable
@@ -26,7 +21,14 @@ typedef int32 bool32;
 typedef float float32;
 typedef double float64;
 
-//Create struct instead of global variables, means multiple buffers can be made
+#include "handmade.cpp"
+
+#include <windows.h>
+#include <stdio.h>
+#include <xinput.h>
+#include <dsound.h>
+#include <math.h>
+
 struct WIN32_OFFSCREEN_BUFFER
 {
     BITMAPINFO BitmapInfo;
@@ -101,7 +103,7 @@ internal void win32_LoadXInput(void)
 }
 
 //Load and initialise DirectSound (OOP API)
-internal void Win32InitDSound(HWND Window, int32 SampleRate, int32 BufferSize)
+internal void win32_InitDSound(HWND Window, int32 SampleRate, int32 BufferSize)
 {
     //Load library
     HMODULE DSoundLibrary = LoadLibrary("dsound.dll");
@@ -227,32 +229,6 @@ internal WIN32_WINDOW_DIMENSIONS win32_GetWindowDimensions(HWND Window)
     WindowDimensions.Height = ClientRect.bottom - ClientRect.top;
 
     return WindowDimensions;
-}
-
-
-internal void render_Gradient(WIN32_OFFSCREEN_BUFFER *Buffer, int XOffset, int YOffset)
-{    
-    uint8 *Row = (uint8 *) Buffer->BitmapMemory; 
-
-    //Animation loops
-    for(int Y = 0; Y < Buffer->BitmapHeight; ++Y)
-    {
-        uint32 *Pixel = (uint32 *) Row;
-
-        for(int X = 0; X < Buffer->BitmapWidth; ++X)
-        {
-            //Pixels in memory = 0x xxBBGGRR (Little Endian)
-            uint8 Blue = (X + XOffset);
-            uint8 Green = (Y + YOffset);
-
-            //Pixel increments by 1 * sizeof(uint32) = 4 bytes
-            //xx BB GG RR -> xx RR GG BB from Little Endian
-            *Pixel++ = ((Green << 8) | Blue); //Shift and Or RGB values together
-        }
-
-        //Pitch moves from one row to the next (in bytes)
-        Row += Buffer->Pitch;
-    }
 }
 
 //Device Independant Bitmap, function for writing into bitmaps for Windows to display through it's graphic library GDI
@@ -444,7 +420,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
 
     WindowClass.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC; //Create unique device context for this window
     WindowClass.lpfnWndProc = win32_MainWindow_Callback; //Call the window process
-    WindowClass.hInstance = Instance; //Handle instance passed from WinMain
+    WindowClass.hInstance = Instance; //Handle instance passed from win32_WinMain
     WindowClass.lpszClassName = "HandmadeHeroWindowClass"; //Name of Window class
     //WindowClass.hIcon;
 
@@ -470,7 +446,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
             SoundOutput.BytesPerSample = sizeof(int16) * 2;
             SoundOutput.SecondaryBufferSize = SoundOutput.SampleRate * SoundOutput.BytesPerSample;
 
-            Win32InitDSound(Window, SoundOutput.SampleRate, SoundOutput.SecondaryBufferSize);
+            win32_InitDSound(Window, SoundOutput.SampleRate, SoundOutput.SecondaryBufferSize);
             win32_FillSoundBuffer(&SoundOutput, 0, SoundOutput.SecondaryBufferSize);
             GlobalSecondaryBuffer->Play(0, 0, DSBPLAY_LOOPING);
             
@@ -480,7 +456,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
             LARGE_INTEGER LastCounter;
             QueryPerformanceCounter(&LastCounter);
 
-            int64 LastCycleCount = __rdtsc();
+            uint64 LastCycleCount = __rdtsc();
 
             //Loop while program is running / until negative result from GetMessage
             while(GlobalRunning)
@@ -535,7 +511,12 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
                 }
 
                 //Rendering
-                render_Gradient(&GlobalBackBuffer, XOffset, YOffset);
+                HANDMADE_OFFSCREEN_BUFFER Buffer = {};
+                Buffer.BitmapMemory = GlobalBackBuffer.BitmapMemory;
+                Buffer.BitmapWidth = GlobalBackBuffer.BitmapWidth;
+                Buffer.BitmapHeight = GlobalBackBuffer.BitmapHeight;
+                Buffer.Pitch = GlobalBackBuffer.Pitch;
+                handmade_GameUpdate_Render(&Buffer, XOffset, YOffset);
 
                 //DirectSound square wave test tone
 
@@ -563,7 +544,6 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
                 ++XOffset;
                 YOffset += 2;
 
-
                 WIN32_WINDOW_DIMENSIONS WindowDimensions = win32_GetWindowDimensions(Window);
                 win32_DisplayBuffer_Window(&GlobalBackBuffer, DeviceContext, WindowDimensions.Width, WindowDimensions.Height);
                 
@@ -572,18 +552,18 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
                 LARGE_INTEGER EndCounter;
                 QueryPerformanceCounter(&EndCounter);
 
-                int64 EndCycleCount = __rdtsc();
+                uint64 EndCycleCount = __rdtsc();
 
                 int64 CounterElapsed = EndCounter.QuadPart - LastCounter.QuadPart;
-                int64 CyclesElapsed = EndCycleCount - LastCycleCount;
+                uint64 CyclesElapsed = EndCycleCount - LastCycleCount;
                 float32 MSPerFrame = (float32) (((1000.0f * (float32) CounterElapsed) / (float32) PerfomanceCounterFrequency));
                 float32 FramesPerSecond = (float32) PerfomanceCounterFrequency / (float32) CounterElapsed;
                 float32 MegaHzCyclesPerFrame = (float32) (CyclesElapsed / (1000.0f * 1000.0f));
-
+#if 0
                 char MSPerFrame_Buffer[256];
                 sprintf(MSPerFrame_Buffer, "%0.2f ms/frame\t %0.2f FPS\t %0.2f cycles(MHz)/frame\n", MSPerFrame, FramesPerSecond, MegaHzCyclesPerFrame);
                 OutputDebugString(MSPerFrame_Buffer);
-
+#endif
                 LastCounter = EndCounter;
                 LastCycleCount = EndCycleCount;
             }
