@@ -9,8 +9,15 @@ struct HANDMADE_OFFSCREEN_BUFFER
     int Pitch;
 };
 
+struct HANDMADE_SOUND_BUFFER
+{
+    int SampleRate;
+    int SampleCount;
+    int16 *Samples;
+};
+
 //4 inputs: timing / keyboard input / bitmap buffer / sound buffer 
-internal void handmade_GameUpdate_Render(HANDMADE_OFFSCREEN_BUFFER *Buffer, int XOffset, int YOffset);
+internal void handmade_GameUpdate_Render(HANDMADE_OFFSCREEN_BUFFER *Buffer, int XOffset, int YOffset, HANDMADE_SOUND_BUFFER *SoundBuffer);
 
 #define HANDMADE_H
 #endif

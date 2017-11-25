@@ -1,5 +1,25 @@
 #include "handmade.h"
 
+internal void sound_OutputSound(HANDMADE_SOUND_BUFFER *SoundBuffer, int ToneHz)
+{
+    local float32 tSine;
+    int16 Amplitude = 3000;
+    int WavePeriod = SoundBuffer->SampleRate / ToneHz;
+
+    int16 *SampleOut = SoundBuffer->Samples;
+
+    for(int SampleIndex = 0; SampleIndex < SoundBuffer->SampleCount; ++SampleIndex)
+    {
+        float32 SineValue = sinf(tSine);
+        int16 SampleValue = (int16) (SineValue * Amplitude);
+        
+        *SampleOut++ = SampleValue;
+        *SampleOut++ = SampleValue;
+
+        tSine += 2.0f * Pi32 * 1.0 / (float32) WavePeriod;
+    }
+}
+
 internal void render_Gradient(HANDMADE_OFFSCREEN_BUFFER *Buffer, int XOffset, int YOffset)
 {    
     uint8 *Row = (uint8 *) Buffer->BitmapMemory; 
@@ -25,7 +45,8 @@ internal void render_Gradient(HANDMADE_OFFSCREEN_BUFFER *Buffer, int XOffset, in
     }
 }
 
-internal void handmade_GameUpdate_Render(HANDMADE_OFFSCREEN_BUFFER *Buffer, int XOffset, int YOffset)
+internal void handmade_GameUpdate_Render(HANDMADE_OFFSCREEN_BUFFER *Buffer, int XOffset, int YOffset, HANDMADE_SOUND_BUFFER *SoundBuffer, int ToneHz)
 {
+    sound_OutputSound(SoundBuffer, ToneHz);
     render_Gradient(Buffer, XOffset, YOffset);
 }
