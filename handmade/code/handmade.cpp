@@ -45,8 +45,28 @@ internal void render_Gradient(HANDMADE_OFFSCREEN_BUFFER *Buffer, int XOffset, in
     }
 }
 
-internal void handmade_GameUpdate_Render(HANDMADE_OFFSCREEN_BUFFER *Buffer, int XOffset, int YOffset, HANDMADE_SOUND_BUFFER *SoundBuffer, int ToneHz)
+internal void handmade_GameUpdate_Render(HANDMADE_INPUT_USER *Input, HANDMADE_OFFSCREEN_BUFFER *Buffer, HANDMADE_SOUND_BUFFER *SoundBuffer)
 {
+    local int XOffset = 0;
+    local int YOffset = 0;
+    local int ToneHz = 256;
+
+    HANDMADE_INPUT_CONTROLLER *Input0 = &Input->Controllers[0];
+
+    if(Input0->IsAnalog)
+    {
+
+    }
+    else
+    {
+
+    }
+
+    if(Input0->Down.EndedDown)
+    {
+        XOffset += 1;
+    }
+
     sound_OutputSound(SoundBuffer, ToneHz);
     render_Gradient(Buffer, XOffset, YOffset);
 }

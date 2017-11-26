@@ -29,23 +29,8 @@ typedef double float64;
 #include <stdio.h>
 #include <xinput.h>
 #include <dsound.h>
-#include <malloc.h>
-
-struct WIN32_OFFSCREEN_BUFFER
-{
-    BITMAPINFO BitmapInfo;
-    void *BitmapMemory; //Void * means the format of the pointer can be any type, but will need to be cast later
-    int BitmapWidth;
-    int BitmapHeight;
-    int Pitch;
-};
-
-//Instead of calling GetClientRect all the time, create struct for window dimensions and store them
-struct WIN32_WINDOW_DIMENSIONS
-{
-    int Width;
-    int Height;
-};
+ 
+#include "win32_handmade.h"
 
 //Create own version of XInput/DirectSound functions to avoid calling libraries
 //Create macros of function prototypes
@@ -163,20 +148,6 @@ internal void win32_InitDSound(HWND Window, int32 SampleRate, int32 BufferSize)
         }
     }
 }
-
-//Sound test buffer values
-struct WIN32_SOUND_OUTPUT
-{
-    int SampleRate;
-    int ToneHz;
-    int16 Amplitude;
-    uint32 RunningSampleIndex;
-    int SquareWave_Period;
-    int BytesPerSample;
-    int SecondaryBufferSize;
-    float32 tSine;
-    int LatencySampleCount;
-};
 
 internal void win32_ClearBuffer(WIN32_SOUND_OUTPUT *SoundOutput)
 {
@@ -453,17 +424,11 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
         {
             //Specified CS_OWNDC so get one device context and use it forever
             HDC DeviceContext = GetDC(Window);
-
-            int XOffset = 0;
-            int YOffset = 0;
             
             WIN32_SOUND_OUTPUT SoundOutput = {};
 
             SoundOutput.SampleRate = 48000;
-            SoundOutput.ToneHz = 256;
-            SoundOutput.Amplitude = 2000;
             SoundOutput.RunningSampleIndex = 0;
-            SoundOutput.SquareWave_Period = SoundOutput.SampleRate / SoundOutput.ToneHz;
             SoundOutput.BytesPerSample = sizeof(int16) * 2;
             SoundOutput.SecondaryBufferSize = SoundOutput.SampleRate * SoundOutput.BytesPerSample;
 
@@ -485,6 +450,8 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
             while(GlobalRunning)
             {
                 MSG Messages;
+
+                HANDMADE_INPUT_USER Input = {};
 
                 //PeekMessage keeps processing message queue without blocking when there are no messages available
                 while(PeekMessage(&Messages, 0, 0, 0, PM_REMOVE))
@@ -515,6 +482,9 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
                         bool32 PadLeft = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_LEFT);
                         bool32 PadRight = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_RIGHT);
                         bool32 PadStart = (Pad->wButtons & XINPUT_GAMEPAD_START);
+
+                        
+
                         bool32 PadBack = (Pad->wButtons & XINPUT_GAMEPAD_BACK);
                         bool32 PadLeftShoulder = (Pad->wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER);
                         bool32 PadRightShoulder = (Pad->wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER);
@@ -569,7 +539,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
                 Buffer.BitmapWidth = GlobalBackBuffer.BitmapWidth;
                 Buffer.BitmapHeight = GlobalBackBuffer.BitmapHeight;
                 Buffer.Pitch = GlobalBackBuffer.Pitch;
-                handmade_GameUpdate_Render(&Buffer, XOffset, YOffset, &SoundBuffer, SoundOutput.ToneHz);
+                handmade_GameUpdate_Render(&Input, &Buffer, &SoundBuffer);
 
                 //DirectSound square wave test tone
 
@@ -577,9 +547,6 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
                 {
                     win32_FillSoundBuffer(&SoundOutput, ByteToLock, BytesToWrite, &SoundBuffer);
                 }
-
-                ++XOffset;
-                YOffset += 2;
 
                 WIN32_WINDOW_DIMENSIONS WindowDimensions = win32_GetWindowDimensions(Window);
                 win32_DisplayBuffer_Window(&GlobalBackBuffer, DeviceContext, WindowDimensions.Width, WindowDimensions.Height);

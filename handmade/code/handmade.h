@@ -1,5 +1,7 @@
 #if !defined(HANDMADE_H)
 
+#define ArrayCount(Array) (sizeof(Array) / sizeof((Array[0])))
+
 //Create struct instead of global variables, means multiple buffers can be made
 struct HANDMADE_OFFSCREEN_BUFFER
 {
@@ -16,8 +18,51 @@ struct HANDMADE_SOUND_BUFFER
     int16 *Samples;
 };
 
+struct HANDMADE_INPUT_CONTROLLER_BUTTON_STATE
+{
+    int HalfTransitionCount;
+    bool32 EndedDown;
+};
+
+struct HANDMADE_INPUT_CONTROLLER
+{
+    bool32 IsAnalog;
+
+    float32 StartX;
+    float32 StartY;
+
+    float32 MinX;
+    float32 MinY;
+
+    float32 MaxX;
+    float32 MaxY;
+
+    float32 EndX;
+    float32 EndY;
+
+    union
+    {
+        HANDMADE_INPUT_CONTROLLER_BUTTON_STATE Buttons[5];
+
+        struct
+        {
+            HANDMADE_INPUT_CONTROLLER_BUTTON_STATE Up;
+            HANDMADE_INPUT_CONTROLLER_BUTTON_STATE Down;
+            HANDMADE_INPUT_CONTROLLER_BUTTON_STATE Left;
+            HANDMADE_INPUT_CONTROLLER_BUTTON_STATE Right;
+            HANDMADE_INPUT_CONTROLLER_BUTTON_STATE LeftShoulder;
+            HANDMADE_INPUT_CONTROLLER_BUTTON_STATE RightShoulder;
+        };
+    };
+};
+
+struct HANDMADE_INPUT_USER
+{
+    HANDMADE_INPUT_CONTROLLER Controllers[4];
+};
+
 //4 inputs: timing / keyboard input / bitmap buffer / sound buffer 
-internal void handmade_GameUpdate_Render(HANDMADE_OFFSCREEN_BUFFER *Buffer, int XOffset, int YOffset, HANDMADE_SOUND_BUFFER *SoundBuffer);
+internal void handmade_GameUpdate_Render(HANDMADE_INPUT_USER *Input, HANDMADE_OFFSCREEN_BUFFER *Buffer, HANDMADE_SOUND_BUFFER *SoundBuffer);
 
 #define HANDMADE_H
 #endif
