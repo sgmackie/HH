@@ -397,6 +397,12 @@ LRESULT CALLBACK win32_MainWindow_Callback(HWND Window, UINT UserMessage, WPARAM
     return Result;
 }  
 
+internal void win32_xinput_ProcessDigitalButton(DWORD XInputButtonState, HANDMADE_INPUT_CONTROLLER_BUTTON_STATE *OldState, DWORD ButtonBit, HANDMADE_INPUT_CONTROLLER_BUTTON_STATE *NewState)
+{
+    NewState->EndedDown = ((XInputButtonState & ButtonBit) == ButtonBit);
+    NewState->HalfTransitionCount = (OldState->EndedDown != NewState->EndedDown) ? 1 : 0;
+}
+
 //Starting point
 //Entry point for any Windows application
 int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLine, int CommandShow)
@@ -425,6 +431,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
             //Specified CS_OWNDC so get one device context and use it forever
             HDC DeviceContext = GetDC(Window);
             
+            //Initialise audio buffer
             WIN32_SOUND_OUTPUT SoundOutput = {};
 
             SoundOutput.SampleRate = 48000;
@@ -436,22 +443,27 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
             win32_ClearBuffer(&SoundOutput);
             GlobalSecondaryBuffer->Play(0, 0, DSBPLAY_LOOPING);
             
+            //Allocate memory for audio samples
             int16 *Samples = (int16 * ) VirtualAlloc(0, SoundOutput.SecondaryBufferSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 
+            //Bools
             bool32 SoundIsPlaying = false;
             GlobalRunning = true;
 
+            //Index controllers
+            HANDMADE_INPUT_USER Input[2] = {};
+            HANDMADE_INPUT_USER *NewInput = &Input[0];
+            HANDMADE_INPUT_USER *OldInput = &Input[1];
+
+            //Performance counters
             LARGE_INTEGER LastCounter;
             QueryPerformanceCounter(&LastCounter);
-
             uint64 LastCycleCount = __rdtsc();
 
             //Loop while program is running / until negative result from GetMessage
             while(GlobalRunning)
             {
                 MSG Messages;
-
-                HANDMADE_INPUT_USER Input = {};
 
                 //PeekMessage keeps processing message queue without blocking when there are no messages available
                 while(PeekMessage(&Messages, 0, 0, 0, PM_REMOVE))
@@ -466,14 +478,21 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
                 }
 
                 //Loop through all connected controllers
-                for(DWORD ControllerIndex = 0; ControllerIndex < XUSER_MAX_COUNT; ++ControllerIndex)
+                int MaxControllerCount = XUSER_MAX_COUNT;
+                if(MaxControllerCount > ArrayCount(NewInput->Controllers))
                 {
+                    MaxControllerCount = ArrayCount(NewInput->Controllers);
+                }
+
+                for(DWORD ControllerIndex = 0; ControllerIndex < MaxControllerCount; ++ControllerIndex)
+                {
+                    HANDMADE_INPUT_CONTROLLER *OldController = &OldInput->Controllers[ControllerIndex];
+                    HANDMADE_INPUT_CONTROLLER *NewController = &NewInput->Controllers[ControllerIndex];
                     XINPUT_STATE ControllerState;
 
                     if(XInputGetState(ControllerIndex, &ControllerState) == ERROR_SUCCESS)
                     {
                         //Controller is plugged in
-
                         //Button layouts
                         XINPUT_GAMEPAD *Pad = &ControllerState.Gamepad;
 
@@ -481,20 +500,18 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
                         bool32 PadDown = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_DOWN);
                         bool32 PadLeft = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_LEFT);
                         bool32 PadRight = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_RIGHT);
-                        bool32 PadStart = (Pad->wButtons & XINPUT_GAMEPAD_START);
-
-                        
-
-                        bool32 PadBack = (Pad->wButtons & XINPUT_GAMEPAD_BACK);
-                        bool32 PadLeftShoulder = (Pad->wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER);
-                        bool32 PadRightShoulder = (Pad->wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER);
-                        bool32 PadButtonA = (Pad->wButtons & XINPUT_GAMEPAD_A);
-                        bool32 PadButtonB = (Pad->wButtons & XINPUT_GAMEPAD_B);
-                        bool32 PadButtonX = (Pad->wButtons & XINPUT_GAMEPAD_X);
-                        bool32 PadButtonY = (Pad->wButtons & XINPUT_GAMEPAD_Y);
-
                         int16 PadStickX = Pad->sThumbLX;
                         int16 PadStickY = Pad->sThumbLY;
+                        
+                        win32_xinput_ProcessDigitalButton(Pad->wButtons, &OldController->Down, XINPUT_GAMEPAD_A, &NewController->Down);
+                        win32_xinput_ProcessDigitalButton(Pad->wButtons, &OldController->Right, XINPUT_GAMEPAD_B, &NewController->Right);
+                        win32_xinput_ProcessDigitalButton(Pad->wButtons, &OldController->Left, XINPUT_GAMEPAD_X, &NewController->Left);
+                        win32_xinput_ProcessDigitalButton(Pad->wButtons, &OldController->Up, XINPUT_GAMEPAD_Y, &NewController->Up);
+                        win32_xinput_ProcessDigitalButton(Pad->wButtons, &OldController->LeftShoulder, XINPUT_GAMEPAD_LEFT_SHOULDER, &NewController->LeftShoulder);
+                        win32_xinput_ProcessDigitalButton(Pad->wButtons, &OldController->RightShoulder, XINPUT_GAMEPAD_RIGHT_SHOULDER, &NewController->RightShoulder);
+
+                        //bool32 PadStart = (Pad->wButtons & XINPUT_GAMEPAD_START);
+                        //bool32 PadBack = (Pad->wButtons & XINPUT_GAMEPAD_BACK);
                     }
 
                     else
@@ -539,7 +556,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
                 Buffer.BitmapWidth = GlobalBackBuffer.BitmapWidth;
                 Buffer.BitmapHeight = GlobalBackBuffer.BitmapHeight;
                 Buffer.Pitch = GlobalBackBuffer.Pitch;
-                handmade_GameUpdate_Render(&Input, &Buffer, &SoundBuffer);
+                handmade_GameUpdate_Render(NewInput, &Buffer, &SoundBuffer);
 
                 //DirectSound square wave test tone
 
@@ -570,6 +587,10 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
 #endif
                 LastCounter = EndCounter;
                 LastCycleCount = EndCycleCount;
+
+                HANDMADE_INPUT_USER *Temp = NewInput;
+                NewInput = OldInput;
+                OldInput = Temp;
             }
         }
 

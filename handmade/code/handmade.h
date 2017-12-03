@@ -61,6 +61,12 @@ struct HANDMADE_INPUT_USER
     HANDMADE_INPUT_CONTROLLER Controllers[4];
 };
 
+//Prototypes
+
+internal void sound_OutputSound(HANDMADE_SOUND_BUFFER *SoundBuffer, int ToneHz);
+
+internal void render_Gradient(HANDMADE_OFFSCREEN_BUFFER *Buffer, int XOffset, int YOffset);
+
 //4 inputs: timing / keyboard input / bitmap buffer / sound buffer 
 internal void handmade_GameUpdate_Render(HANDMADE_INPUT_USER *Input, HANDMADE_OFFSCREEN_BUFFER *Buffer, HANDMADE_SOUND_BUFFER *SoundBuffer);
 
