@@ -572,6 +572,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
                 //End performance counters
                 LARGE_INTEGER EndCounter;
                 QueryPerformanceCounter(&EndCounter);
+                
                 uint64 EndCycleCount = __rdtsc();
 
                 int64 CounterElapsed = EndCounter.QuadPart - LastCounter.QuadPart;
