@@ -569,6 +569,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
                 
                 ReleaseDC(Window, DeviceContext);
 
+                //End Counters
                 LARGE_INTEGER EndCounter;
                 QueryPerformanceCounter(&EndCounter);
 
