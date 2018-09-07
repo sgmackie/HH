@@ -4,6 +4,7 @@
 set BuildDir=..\build
 set ObjDir=.\obj\
 set Debug=.\Debug\
+set VisualStudio=.\.vs\
 
 :: Delete files if build directory exists
 if exist %BuildDir% (  
@@ -21,7 +22,11 @@ if exist %BuildDir% (
   if exist %Debug% (
     rd /q /s %Debug%
   )
-  
+
+  if exist %VisualStudio% (
+    rd /q /s %VisualStudio%
+  )
+
   :: Jump out of build directory
   popd
 )

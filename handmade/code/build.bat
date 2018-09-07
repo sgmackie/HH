@@ -15,6 +15,7 @@ set Libs=user32.lib gdi32.lib
 set ObjDir=.\obj\
 
 :: Set compiler flags:
+:: -DHANDMADE_WIN32 for performance metrics
 :: -Zi enable debugging info
 :: -FC use full path in diagnostics
 :: -Fo path to store Object files

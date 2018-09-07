@@ -246,7 +246,7 @@ internal void win32_ResizeDIBSection(WIN32_OFFSCREEN_BUFFER *Buffer, int Width, 
     
     int BitmapMemory_Size = (Buffer->BitmapWidth * Buffer->BitmapHeight) * BytesPerPixel;
     
-    //Virutal alloc uses whole memory pages, returns void *
+    //Virtual alloc uses whole memory pages, returns void *
     Buffer->BitmapMemory = VirtualAlloc(0, BitmapMemory_Size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);  
 
     Buffer->Pitch = Buffer->BitmapWidth * BytesPerPixel;
@@ -513,7 +513,6 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE PrevInstance, LPSTR CommandLi
                         //bool32 PadStart = (Pad->wButtons & XINPUT_GAMEPAD_START);
                         //bool32 PadBack = (Pad->wButtons & XINPUT_GAMEPAD_BACK);
                     }
-
                     else
                     {
                         //Controller unavailable
